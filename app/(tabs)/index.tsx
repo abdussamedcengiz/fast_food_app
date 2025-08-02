@@ -12,8 +12,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "../globals.css";
+// const isAuthenticated = false;
 
 export default function Index() {
+  // if (!isAuthenticated) return <Redirect href="/SignIn" />;
   return (
     <SafeAreaView className="flex-1 bg-white">
       <FlatList
