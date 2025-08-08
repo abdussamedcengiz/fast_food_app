@@ -1,5 +1,6 @@
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
+import { signUp } from "@/lib/api";
 import { Link, router } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Text, View } from "react-native";
@@ -17,10 +18,11 @@ const SignUp = () => {
     setIsSubmitting(true);
 
     try {
+      await signUp(form.name, form.email, form.password);
       Alert.alert("Success", "User signed up successfully");
       router.replace("/");
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      Alert.alert("Error", error.response?.data?.message || error.message);
     } finally {
       setIsSubmitting(false);
     }
