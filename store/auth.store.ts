@@ -1,43 +1,91 @@
-// import { create } from 'zustand';
-// import {User} from "@/type";
-// import {getCurrentUser} from "@/lib/appwrite";
+import { create } from "zustand";
+import * as api from "@/lib/api";
 
-// type AuthState = {
-//     isAuthenticated: boolean;
-//     user: User | null;
-//     isLoading: boolean;
+// BU DOSYA TAMAMEN YORUM SATIRIYDI.
+//
+// İçindeki taslak bir Appwrite eğitiminden kalmıştı ve olmayan bir
+// modüle ("@/lib/appwrite") atıfta bulunuyordu; hiçbir satırı
+// çalışmıyordu. Git geçmişinde "Implement full auth" diye bir commit
+// var ama oturum durumunu tutan yer burasıydı ve boştu: uygulama
+// giriş yapıldığını hiçbir zaman hatırlamıyordu.
+//
+// Aşağısı aynı fikrin Laravel/Sanctum karşılığı.
 
-//     setIsAuthenticated: (value: boolean) => void;
-//     setUser: (user: User | null) => void;
-//     setLoading: (loading: boolean) => void;
+export type AuthUser = {
+  id: number;
+  name: string;
+  email: string;
+};
 
-//     fetchAuthenticatedUser: () => Promise<void>;
-// }
+type AuthState = {
+  isAuthenticated: boolean;
+  user: AuthUser | null;
 
-// const useAuthStore = create<AuthState>((set) => ({
-//     isAuthenticated: false,
-//     user: null,
-//     isLoading: true,
+  // Açılışta token'ın geçerliliği sunucuya sorulurken true.
+  // Bu olmadan uygulama, kontrol bitmeden kullanıcıyı giriş
+  // ekranına atardı.
+  isLoading: boolean;
 
-//     setIsAuthenticated: (value) => set({ isAuthenticated: value }),
-//     setUser: (user) => set({ user }),
-//     setLoading: (value) => set({isLoading: value}),
+  fetchAuthenticatedUser: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+};
 
-//     fetchAuthenticatedUser: async () => {
-//         set({isLoading: true});
+export const useAuthStore = create<AuthState>((set) => ({
+  isAuthenticated: false,
+  user: null,
+  isLoading: true,
 
-//         try {
-//             const user = await getCurrentUser();
+  /**
+   * Açılışta çağrılır: cihazda kayıtlı bir token var mı ve hâlâ
+   * geçerli mi?
+   *
+   * Token'ın geçerliliğini yalnızca sunucu bilir. Sanctum token'ları
+   * çıkış yapıldığında silinir; elimizdeki token iptal edilmiş
+   * olabilir.
+   */
+  fetchAuthenticatedUser: async () => {
+    set({ isLoading: true });
 
-//             if(user) set({ isAuthenticated: true, user: user as User })
-//             else set( { isAuthenticated: false, user: null } );
-//         } catch (e) {
-//             console.log('fetchAuthenticatedUser error', e);
-//             set({ isAuthenticated: false, user: null })
-//         } finally {
-//             set({ isLoading: false });
-//         }
-//     }
-// }))
+    try {
+      const token = await api.getToken();
 
-// export default useAuthStore;
+      if (!token) {
+        set({ isAuthenticated: false, user: null });
+        return;
+      }
+
+      const user = await api.getCurrentUser();
+      set({ isAuthenticated: true, user });
+    } catch {
+      // Token geçersiz ya da sunucuya ulaşılamıyor. İki durumu
+      // ayırt etmiyoruz: her hâlükârda giriş ekranı gösterilecek,
+      // ama yerel token'ı da temizliyoruz ki bir dahaki açılışta
+      // boşuna denenmesin.
+      await api.clearToken();
+      set({ isAuthenticated: false, user: null });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  signIn: async (email, password) => {
+    // Hata FIRLATILIYOR, yutulmuyor: ekran onu yakalayıp
+    // kullanıcıya sunucunun mesajını gösterebilsin.
+    const { user } = await api.signIn(email, password);
+    set({ isAuthenticated: true, user });
+  },
+
+  signUp: async (name, email, password) => {
+    const { user } = await api.signUp(name, email, password);
+    set({ isAuthenticated: true, user });
+  },
+
+  signOut: async () => {
+    await api.signOut();
+    set({ isAuthenticated: false, user: null });
+  },
+}));
+
+export default useAuthStore;

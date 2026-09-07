@@ -1,6 +1,6 @@
 import Filter from "@/components/Filter";
 import MenuCard from "@/components/MenuCard";
-import { getAllMenuItems, getCategories, searchMenuItems } from "@/lib/api";
+import { getCategories, getMenuItems } from "@/lib/api";
 import { Category, MenuItem } from "@/type";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Text, TextInput, View } from "react-native";
@@ -44,7 +44,7 @@ const Search = () => {
 
   useEffect(() => {
     getCategories().then(setCategories);
-    getAllMenuItems().then(setAllItems);
+    getMenuItems().then(setAllItems);
   }, []);
 
   useEffect(() => {
@@ -56,7 +56,18 @@ const Search = () => {
     }
     setLoading(true);
     setError(null);
-    searchMenuItems(debouncedQuery)
+    // KATEGORI ARTIK SUNUCUYA GONDERILIYOR.
+    //
+    // Onceden "category" state'i tutuluyor ve effect'in bagimlilik
+    // listesinde yer aliyordu -- yani kategori degisince istek
+    // yeniden atiliyordu -- ama DEGERI ISTEGE HIC KONULMUYORDU.
+    // Sonuc: kategori secmek listeyi degistirmiyordu.
+    //
+    // (Backend tarafi da "search"i yok sayiyordu; o da duzeltildi.)
+    getMenuItems({
+      search: debouncedQuery || undefined,
+      category: category ? Number(category) : undefined,
+    })
       .then((data) => {
         setResults(data);
         setLoading(false);

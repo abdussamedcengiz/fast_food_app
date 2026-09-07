@@ -1,50 +1,87 @@
-# Welcome to your Expo app 👋
+# Fast Food App — Mobil
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Sipariş uygulamasının React Native (Expo) istemcisi.
+Menü listeleme, arama, kategori filtresi, sepet ve kullanıcı girişi içerir.
 
-## Get started
+**Backend:** [fast_food_app_laravel](https://github.com/abdussamedcengiz/fast_food_app_laravel)
+(Laravel + Sanctum). Bu uygulama tek başına çalışmaz; API'nin ayakta olması gerekir.
 
-1. Install dependencies
+## Teknolojiler
 
-   ```bash
-   npm install
-   ```
+- React Native + Expo (Expo Router)
+- TypeScript
+- NativeWind (Tailwind CSS)
+- Zustand (durum yönetimi)
+- Axios
+- expo-secure-store (token saklama)
 
-2. Start the app
+## Özellikler
 
-   ```bash
-   npx expo start
-   ```
+- Kayıt olma / giriş / çıkış — Sanctum token ile
+- Token cihazda **şifreli** saklanır (Keychain / Keystore)
+- Açılışta oturum doğrulaması: token hâlâ geçerli mi?
+- Menü listeleme, **sunucu tarafında** arama ve kategori filtresi
+- Sepet: ürün ekleme, adet, özelleştirme seçimi
+- Korumalı sekmeler — giriş yapmayan kullanıcı menüye erişemez
 
-In the output, you'll find options to open the app in a
+## Kurulum
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Önce **backend'i çalıştır** (bkz. backend reposu), sonra:
 
 ```bash
-npm run reset-project
+npm install
+cp .env.example .env        # Windows: copy .env.example .env
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### API adresi
 
-## Learn more
+Mobilde `localhost` **telefonun/emülatörün kendisidir**, geliştirme
+makinen değil. Bu yüzden adres çalıştırdığın yere göre değişir:
 
-To learn more about developing your project with Expo, look at the following resources:
+| Nerede çalıştırıyorsun | `EXPO_PUBLIC_API_URL` |
+|---|---|
+| iOS simülatörü / web | `http://127.0.0.1:8000` |
+| Android emülatörü | `http://10.0.2.2:8000` |
+| Gerçek telefon | `http://<makinenin-yerel-IP'si>:8000` |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Boş bırakırsan platforma göre ilk iki satırdaki varsayılan kullanılır.
+Gerçek telefonda mutlaka kendi IP'ni yazman gerekir.
 
-## Join the community
+## Proje yapısı
 
-Join our community of developers creating universal apps.
+```
+app/
+├── _layout.tsx           # Kök yerleşim
+├── (auth)/               # Giriş / kayıt ekranları
+└── (tabs)/               # Ana sekmeler (korumalı)
+    ├── index.tsx         # Menü
+    ├── search.tsx        # Arama + kategori filtresi
+    ├── cart.tsx          # Sepet
+    └── profile.tsx
+components/               # Yeniden kullanılabilir bileşenler
+lib/api.ts                # API katmanı, token yönetimi, hata çevirisi
+store/
+├── auth.store.ts         # Oturum durumu
+└── cart.store.ts         # Sepet durumu
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Mimari notlar
+
+- **`lib/api.ts` tek giriş noktasıdır.** Axios interceptor'ı her isteğe
+  `Authorization` başlığını otomatik ekler; ekranlar token'ı hiç görmez.
+- **Token `expo-secure-store`'da tutulur**, `AsyncStorage`'da değil:
+  SecureStore iOS Keychain ve Android Keystore kullanır, yani veri
+  şifreli saklanır. Bir oturum anahtarı için doğru yer burasıdır.
+- **`apiHataMesaji()`** Laravel'in `{ message, errors }` biçimindeki
+  cevabını okunur tek bir cümleye çevirir. Böylece kullanıcı
+  "Request failed with status code 422" yerine
+  "Şifre en az 8 karakter olmalı" görür.
+- **Arama ve filtre sunucuda yapılır.** İstemci tarafında filtrelemek
+  tüm menüyü indirmeyi gerektirirdi.
+
+## Bilinen eksikler
+
+- Sipariş oluşturma ucu henüz yok; sepet yalnızca cihazda tutuluyor.
+- Ödeme entegrasyonu yok.
+- Test yok.

@@ -1,9 +1,10 @@
 import { images } from "@/constants";
 import { TabBarIconProps } from "@/type";
 import cn from "clsx";
-import { Redirect, Slot, Tabs } from "expo-router";
-import React from "react";
-import { Image, Text, View } from "react-native";
+import { Redirect, Tabs } from "expo-router";
+import React, { useEffect } from "react";
+import { ActivityIndicator, Image, Text, View } from "react-native";
+import { useAuthStore } from "@/store/auth.store";
 
 const TabBarIcon = ({ focused, icon, title }: TabBarIconProps) => (
   <View className="tab-icon">
@@ -25,9 +26,34 @@ const TabBarIcon = ({ focused, icon, title }: TabBarIconProps) => (
 );
 
 export default function TabLayout() {
-  const isAuthenticated = true;
+  // ONCEDEN BURADA "const isAuthenticated = true;" YAZIYORDU.
+  //
+  // Yani koruma sahteydi: kosul her zaman dogru oldugu icin giris
+  // yapmamis bir kullanici da sekmelere erisebiliyordu. Artik gercek
+  // oturum durumu okunuyor.
+  const { isAuthenticated, isLoading, fetchAuthenticatedUser } = useAuthStore();
+
+  // Acilista cihazda kayitli token'in hala gecerli olup olmadigini
+  // sunucuya soruyoruz.
+  useEffect(() => {
+    void fetchAuthenticatedUser();
+  }, [fetchAuthenticatedUser]);
+
+  // Kontrol bitmeden yonlendirme YAPMIYORUZ: aksi halde gecerli bir
+  // oturumu olan kullanici bile bir an icin giris ekranina atilirdi.
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="#FE8C00" />
+      </View>
+    );
+  }
+
   if (!isAuthenticated) return <Redirect href="/Sign-in" />;
-  <Slot />;
+
+  // NOT: burada tek basina duran "<Slot />;" satiri vardi. Bir JSX
+  // ifadesini deyim olarak yazmak hicbir sey yapmaz -- deger
+  // uretilip atiliyordu. ESLint de bunu uyari olarak isaretliyordu.
   return (
     <Tabs
       screenOptions={{

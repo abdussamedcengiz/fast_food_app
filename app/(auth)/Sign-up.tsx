@@ -1,12 +1,15 @@
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
-import { signUp } from "@/lib/api";
+import { apiHataMesaji } from "@/lib/api";
+import { useAuthStore } from "@/store/auth.store";
 import { Link, router } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Text, View } from "react-native";
 
 const SignUp = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const signUp = useAuthStore((state) => state.signUp);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
 
   const submit = async () => {
@@ -19,10 +22,9 @@ const SignUp = () => {
 
     try {
       await signUp(form.name, form.email, form.password);
-      Alert.alert("Success", "User signed up successfully");
-      router.replace("/");
-    } catch (error: any) {
-      Alert.alert("Error", error.response?.data?.message || error.message);
+            router.replace("/");
+    } catch (error) {
+      Alert.alert("Kayıt yapılamadı", apiHataMesaji(error));
     } finally {
       setIsSubmitting(false);
     }
